@@ -40,11 +40,53 @@ def trapeze_discr(left, numl, numr, right, n):
     return xl, xr, np.arange(0.0, 1.0 + 1/n, 1/n)
 
 def normal_discr(mean, variance, n):
-    xl = np.array([mean - math.sqrt(-2*(variance**2)*math.log(1/(n*2)))])
-    xr = np.array([mean + math.sqrt(-2*(variance**2)*math.log(1/(n*2)))])
+    xl = np.array([mean - math.sqrt(-2*(variance**2)*math.log(1/(n)))])
+    xr = np.array([mean + math.sqrt(-2*(variance**2)*math.log(1/(n)))])
     for lmb in np.arange(1/n, 1.0 + 1/n, 1/n):
         xl = np.append(xl, mean - math.sqrt(-2*(variance**2)*math.log(lmb)))
         xr = np.append(xr, mean + math.sqrt(-2*(variance**2)*math.log(lmb)))
+    return xl, xr, np.arange(0, 1.0 + 1/n, 1/n)
+
+def points_discr(xes,mus,n):
+    i, j = 0, -1
+    if max(mus) != 1 or mus[-1] == 1 or mus[0] == 1:
+        raise ValueError
+    xl = np.array([xes[0]])
+    xr = np.array([xes[-1]])
+    for lmb in np.arange(1/n, 1.0 + 1/n, 1/n):
+        if lmb <= mus[i]:
+            if i == 0 or xes[i+1] == xes[i]:
+                xl = np.append(xl, xes[i])
+            else:
+                k = (mus[i]-mus[i-1])/(xes[i]-xes[i-1])
+                b = mus[i-1] - k*xes[i-1]
+                xl = np.append(xl, (lmb - b)/k)
+        else:
+            while lmb > mus[i]:
+                i += 1
+            if xes[i] == xes[i-1]:
+                xl = np.append(xl, xes[i])
+            else:
+                k = (mus[i]-mus[i-1])/(xes[i]-xes[i-1])
+                b = mus[i-1] - k*xes[i-1]
+                xl = np.append(xl, (lmb - b)/k)
+            
+        if lmb <= mus[j]:
+            if j == -1 or xes[j+1] == xes[j]:
+                xr = np.append(xr, xes[j])
+            else:
+                k = (mus[j]-mus[j+1])/(xes[j]-xes[j+1])
+                b = mus[j+1] - k*xes[j+1]
+                xr = np.append(xr, (lmb - b)/k)
+        else:
+            while lmb > mus[j]:
+                j -= 1
+            if xes[j+1] == xes[j]:
+                xr = np.append(xr, xes[j])
+            else:
+                k = (mus[j]-mus[j+1])/(xes[j]-xes[j+1])
+                b = mus[j+1] - k*xes[j+1]
+                xr = np.append(xr, (lmb - b)/k)
     return xl, xr, np.arange(0, 1.0 + 1/n, 1/n)
 
 
@@ -158,6 +200,16 @@ def calculate():
             n1 = ent1.get().split()
             mean1, variance1 = list(map(lambda x: float(x), n1))
             xl, xr, mux = normal_discr(mean1, variance1, n)
+        else:
+            filex = open(fl1_x.get(), 'r')
+            x_str = filex.readlines()
+            xes = list(map(lambda ch: float(ch), x_str))
+            filem = open(fl1_mu.get(), 'r')
+            mu_str = filem.readlines()
+            mus = list(map(lambda ch: float(ch), mu_str))
+            xl, xr, mux = points_discr(xes, mus, n)
+            filex.close()
+            filem.close()
         if val_memb2 == 1:
             n2 = ent2.get().split()
             num2 = list(map(lambda x: float(x), n2))
@@ -172,6 +224,16 @@ def calculate():
             n2 = ent2.get().split()
             mean2, variance2 = list(map(lambda x: float(x), n2))
             yl, yr, muy = normal_discr(mean2, variance2, n)
+        else:
+            filex = open(fl2_x.get(), 'r')
+            x_str = filex.readlines()
+            xes = list(map(lambda ch: float(ch), x_str))
+            filem = open(fl1_mu.get(), 'r')
+            mu_str = filem.readlines()
+            mus = list(map(lambda ch: float(ch), mu_str))
+            yl, yr, muy = points_discr(xes, mus, n)
+            filex.close()
+            filem.close()
 
         mus = mux
                 
@@ -196,12 +258,12 @@ def calculate():
             lmb_l, lmb_r = dsw_fuzzy_bifunc(xl, xr, yl, yr, mus, f)
             z = np.append(lmb_l, lmb_r[::-1])
             mu_z = mu
-        filename1 = ent4.get()
+        filename1 = ent3.get()
         if filename1 == "":
-            filename1 = "mu_out"
-        filename2 = ent3.get()
+            filename1 = "x_out"
+        filename2 = ent4.get()
         if filename2 == "":
-            filename2 = "x_out"
+            filename2 = "mu_out"
         file1 = open(os.path.join(dr.get(),filename1), "w")
         file2 = open(os.path.join(dr.get(),filename2), "w")
         for i in range(len(z)):
@@ -227,152 +289,127 @@ def select_dir():
         directory = os.getcwd()
     dr.set(directory)
 
-def clear_all():
-    frame_memb1.pack_forget()
-    label1_tr.pack_forget()
-    label1_n.pack_forget()
-    ent1.pack_forget()
-    frame_memb2.pack_forget()
-    label2_tr.pack_forget()
-    label2_n.pack_forget()
-    ent2.pack_forget()
-    frame1.pack_forget()
-    label_method.pack_forget()
-    frame2.pack_forget()
-    label3.pack_forget()
-    ent3.pack_forget()
-    label4.pack_forget()
-    ent4.pack_forget()
-    dir_but.pack_forget()
-    label5.pack_forget()
-    label6.pack_forget()
-    calc.pack_forget()
-    quit.pack_forget()
+def clear1():
+    for widget in frame_inp1.winfo_children():
+        widget.pack_forget()
+
+def clear2():
+    for widget in frame_inp2.winfo_children():
+        widget.pack_forget()
 
 def trap1_pack():
-    clear_all()
-    frame_memb1.pack()
+    clear1()
     label1_tr.pack()
     ent1.pack()
-    frame_memb2.pack()
-    if varmemb2.get() == 1:
-        label2_tr.pack()
-    else:
-        label2_n.pack()
-    ent2.pack()
-    frame1.pack()
-    label_method.pack()
-    frame2.pack()
-    label3.pack()
-    ent3.pack()
-    label4.pack()
-    ent4.pack()
-    dir_but.pack()
-    label5.pack()
-    label6.pack()
-    calc.pack()
-    quit.pack()
     
 def norm1_pack():
-    clear_all()
-    frame_memb1.pack()
+    clear1()
     label1_n.pack()
     ent1.pack()
-    frame_memb2.pack()
-    if varmemb2.get() == 1:
-        label2_tr.pack()
-    else:
-        label2_n.pack()
-    ent2.pack()
-    frame1.pack()
-    label_method.pack()
-    frame2.pack()
-    label3.pack()
-    ent3.pack()
-    label4.pack()
-    ent4.pack()
-    dir_but.pack()
-    label5.pack()
-    label6.pack()
-    calc.pack()
-    quit.pack()
+
+def file1_pack():
+    clear1()
+    label1_f_x.pack()
+    file1_x_but.pack()
+    label1_file_x.pack()
+    label1_f_mu.pack()
+    file1_mu_but.pack()
+    label1_file_mu.pack()
     
 def trap2_pack():
-    clear_all()
-    frame_memb1.pack()
-    if varmemb1.get() == 1:
-        label1_tr.pack()
-    else:
-        label1_n.pack()
-    ent1.pack()
-    frame_memb2.pack()
+    clear2()
     label2_tr.pack()
     ent2.pack()
-    frame1.pack()
-    label_method.pack()
-    frame2.pack()
-    label3.pack()
-    ent3.pack()
-    label4.pack()
-    ent4.pack()
-    dir_but.pack()
-    label5.pack()
-    label6.pack()
-    calc.pack()
-    quit.pack()
     
 def norm2_pack():
-    clear_all()
-    frame_memb1.pack()
-    if varmemb1.get() == 1:
-        label1_tr.pack()
-    else:
-        label1_n.pack()
-    ent1.pack()
-    frame_memb2.pack()
+    clear2()
     label2_n.pack()
     ent2.pack()
-    frame1.pack()
-    label_method.pack()
-    frame2.pack()
-    label3.pack()
-    ent3.pack()
-    label4.pack()
-    ent4.pack()
-    dir_but.pack()
-    label5.pack()
-    label6.pack()
-    calc.pack()
-    quit.pack()
 
+def file2_pack():
+    clear2()
+    label2_f_x.pack()
+    file2_x_but.pack()
+    label2_file_x.pack()
+    label2_f_mu.pack()
+    file2_mu_but.pack()
+    label2_file_mu.pack()
+
+def select_file1_x ():
+    file = Tk.filedialog.askopenfile(mode='r')
+    if file:
+        fl1_x.set(file.name)
+
+def select_file1_mu ():
+    file = Tk.filedialog.askopenfile(mode='r')
+    if file:
+        fl1_mu.set(file.name)
+
+def select_file2_x ():
+    file = Tk.filedialog.askopenfile(mode='r')
+    if file:
+        fl2_x.set(file.name)
+
+def select_file2_mu ():
+    file = Tk.filedialog.askopenfile(mode='r')
+    if file:
+        fl2_mu.set(file.name)    
+    
 root = Tk.Tk()
 root.title("1FC")
+
 frame_memb1 = Tk.Frame(root)
 varmemb1 = Tk.IntVar()
 rmemb1_tr = Tk.Radiobutton(frame_memb1,text = 'Triangle/trapeze',variable=varmemb1,value=1,command = trap1_pack)
 rmemb1_n =Tk.Radiobutton(frame_memb1,text = 'Normal distribution',variable=varmemb1,value=2,command = norm1_pack)
+rmemb1_f =Tk.Radiobutton(frame_memb1,text = 'From file',variable=varmemb1,value=3,command = file1_pack)
 varmemb1.set(1)
 frame_memb1.pack(side = 'top')
 rmemb1_tr.pack(side = 'left')
-rmemb1_n.pack(side = 'left')              
-label1_tr = Tk.Label(root,text = "Number(format:'left num(+num_right for trapeze) right)")
-label1_n = Tk.Label(root,text = "Number(format:'mean variance')")
+rmemb1_n.pack(side = 'left')
+rmemb1_f.pack(side = 'left')
+frame_inp1 = Tk.Frame(root)
+frame_inp1.pack()
+label1_tr = Tk.Label(frame_inp1,text = "Number(format:'left num(+num_right for trapeze) right)")
+label1_n = Tk.Label(frame_inp1,text = "Number(format:'mean variance')")
 label1_tr.pack(side = 'top')
-ent1 = Tk.Entry(root)
+ent1 = Tk.Entry(frame_inp1)
 ent1.pack(side='top')
+label1_f_x = Tk.Label(frame_inp1,text = "Xes from file:")
+fl1_x = Tk.StringVar()
+file1_x_but = Tk.Button(frame_inp1, text="Select file", command=select_file1_x)
+label1_file_x = Tk.Label(frame_inp1, textvariable = fl1_x)
+label1_f_mu = Tk.Label(frame_inp1,text = "MUs from file:")
+fl1_mu = Tk.StringVar()
+file1_mu_but = Tk.Button(frame_inp1, text="Select file", command=select_file1_mu)
+label1_file_mu = Tk.Label(frame_inp1, textvariable = fl1_mu)
+
 frame_memb2 = Tk.Frame(root)
 varmemb2 = Tk.IntVar()
 rmemb2_tr = Tk.Radiobutton(frame_memb2,text='Triangle/trapeze',variable=varmemb2,value=1,command = trap2_pack)
 rmemb2_n = Tk.Radiobutton(frame_memb2,text='Normal distribution',variable=varmemb2,value=2,command = norm2_pack)
+rmemb2_f =Tk.Radiobutton(frame_memb2,text = 'From file',variable=varmemb2,value=3,command = file2_pack)
 varmemb2.set(1)
 frame_memb2.pack(side='top')
 rmemb2_tr.pack(side='left')
 rmemb2_n.pack(side='left')
-label2_tr = Tk.Label(root,text="Number(format:'left num(+num_right for trapeze) right)")
-label2_n = Tk.Label(root,text = "Number(format:'mean variance')")
+rmemb2_f.pack(side = 'left')
+frame_inp2 = Tk.Frame(root)
+frame_inp2.pack()
+label2_tr = Tk.Label(frame_inp2,text="Number(format:'left num(+num_right for trapeze) right)")
+label2_n = Tk.Label(frame_inp2,text = "Number(format:'mean variance')")
 label2_tr.pack(side='top')
-ent2 = Tk.Entry(root)
+ent2 = Tk.Entry(frame_inp2)
 ent2.pack(side='top')
+label2_f_x = Tk.Label(frame_inp2,text = "Xes from file:")
+fl2_x = Tk.StringVar()
+file2_x_but = Tk.Button(frame_inp2, text="Select file", command=select_file2_x)
+label2_file_x = Tk.Label(frame_inp2, textvariable = fl2_x)
+label2_f_mu = Tk.Label(frame_inp2, text = "MUs from file:")
+fl2_mu = Tk.StringVar()
+file2_mu_but = Tk.Button(frame_inp2, text="Select file", command=select_file2_mu)
+label2_file_mu = Tk.Label(frame_inp2, textvariable = fl1_mu)
+
 var=Tk.IntVar()
 frame1 = Tk.Frame(root)
 rbutton1=Tk.Radiobutton(frame1,text='+',variable=var,value=1)
