@@ -223,7 +223,12 @@ def calculate():
         val_memb1 = varmemb1.get()
         val_memb2 = varmemb2.get()
         value2 = var2.get()
-        n = 100
+        if prec_inp.get():
+            n = int(prec_inp.get())
+            if n < 50 or n > 10000:
+                raise ValueError
+        else:
+            n = 100
         if val_memb1 == 1:
             n1 = ent1.get().split()
             num1 = list(map(lambda x: float(x), n1))
@@ -275,7 +280,7 @@ def calculate():
             filex = open(fl2_x.get(), 'r')
             x_str = filex.readlines()
             xes = list(map(lambda ch: float(ch), x_str))
-            filem = open(fl1_mu.get(), 'r')
+            filem = open(fl2_mu.get(), 'r')
             mu_str = filem.readlines()
             mus = list(map(lambda ch: float(ch), mu_str))
             yl, yr, muy = points_discr(xes, mus, n)
@@ -329,7 +334,7 @@ def calculate():
 
         button = Tk.Button(master=error, text='Quit', command=_quit)
         button.pack(side=Tk.BOTTOM)
-
+        
 def select_dir():
     directory = Tk.filedialog.askdirectory()
     if directory == "" or directory == ():
@@ -495,7 +500,15 @@ rbutton_plt1.pack(side='left')
 rbutton_plt2.pack(side='left')
 rbutton_plt3.pack(side='left')
 frame3.pack(side='top')
+frame_precision = Tk.Frame(frame_settings, bg="#fee")
+lbl_precision = Tk.Label(frame_precision, bg="#fee",
+                         text="Choose precision(how many intervals), from 50 to 10000, default 100:")
+prec_inp = Tk.Entry(frame_precision)
+lbl_precision.pack()
+prec_inp.pack()
+frame_precision.pack(side="top")
 frame_settings.pack(side="left")
+                
 main_frame.pack(side="top")
 
 frame_out = Tk.Frame(root)
