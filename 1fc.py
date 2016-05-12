@@ -39,12 +39,16 @@ def trapeze_discr(left, numl, numr, right, n):
         xr = np.append(xr, (lmb - br)/ kr)
     return xl, xr, np.arange(0.0, 1.0 + 1/n, 1/n)
 
-def normal_discr(mean, variance, n):
-    xl = np.array([mean - math.sqrt(-2*(variance**2)*math.log(1/(n)))])
-    xr = np.array([mean + math.sqrt(-2*(variance**2)*math.log(1/(n)))])
+def normal_discr(mean, variance, discr_lvl, n):
+    xl = np.array([mean - math.sqrt(-2*(variance**2)*math.log(discr_lvl))])
+    xr = np.array([mean + math.sqrt(-2*(variance**2)*math.log(discr_lvl))])
     for lmb in np.arange(1/n, 1.0 + 1/n, 1/n):
-        xl = np.append(xl, mean - math.sqrt(-2*(variance**2)*math.log(lmb)))
-        xr = np.append(xr, mean + math.sqrt(-2*(variance**2)*math.log(lmb)))
+        if lmb < discr_lvl:
+            xl = np.append(xl, mean - math.sqrt(-2*(variance**2)*math.log(discr_lvl)))
+            xr = np.append(xr, mean + math.sqrt(-2*(variance**2)*math.log(discr_lvl)))
+        else:
+            xl = np.append(xl, mean - math.sqrt(-2*(variance**2)*math.log(lmb)))
+            xr = np.append(xr, mean + math.sqrt(-2*(variance**2)*math.log(lmb)))
     return xl, xr, np.arange(0, 1.0 + 1/n, 1/n)
 
 def points_discr(xes,mus,n):
@@ -132,18 +136,12 @@ def dsw_fuzzy_bifunc(xl, xr, yl, yr, mus, f):
         lmb_l, lmb_r = np.append(lmb_l,z1), np.append(lmb_r,z2)
     return lmb_l, lmb_r
 
-def plot(x,y,z,mu,mu_z):
+def one_plot(x, m, ttl):
     plt = Tk.Toplevel(master=root)
-    plt.wm_title("Fuzzy Plots")
-
+    plt.wm_title(ttl)
     f = Figure(figsize=(5, 4), dpi=100)
-    a1 = f.add_subplot(111)
-    a2 = f.add_subplot(111)
-    ares = f.add_subplot(111)
-
-    ares.plot(z,mu_z)
-    a1.plot(x,mu)
-    a2.plot(y,mu)
+    a = f.add_subplot(111)
+    a.plot(x,m)
 
     canvas = FigureCanvasTkAgg(f, master=plt)
     canvas.show()
@@ -160,12 +158,53 @@ def plot(x,y,z,mu,mu_z):
 
     canvas.mpl_connect('key_press_event', on_key_event)
 
-
     def _quit():
         plt.destroy()
 
     button = Tk.Button(master=plt, text='Quit', command=_quit)
     button.pack(side=Tk.BOTTOM)
+    
+
+def plot(x,y,z,mu,mu_z):
+
+    if var3.get() == 1:
+        plt = Tk.Toplevel(master=root)
+        plt.wm_title("Fuzzy Plots")
+        f = Figure(figsize=(5, 4), dpi=100)
+        a1 = f.add_subplot(111)
+        a2 = f.add_subplot(111)
+        ares = f.add_subplot(111)
+
+        ares.plot(z,mu_z)
+        a1.plot(x,mu)
+        a2.plot(y,mu)
+
+        canvas = FigureCanvasTkAgg(f, master=plt)
+        canvas.show()
+        canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+
+        toolbar = NavigationToolbar2TkAgg(canvas, plt)
+        toolbar.update()
+        canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+
+
+        def on_key_event(event):
+            print('you pressed %s' % event.key)
+            key_press_handler(event, canvas, toolbar)
+
+        canvas.mpl_connect('key_press_event', on_key_event)
+
+        def _quit():
+            plt.destroy()
+
+        button = Tk.Button(master=plt, text='Quit', command=_quit)
+        button.pack(side=Tk.BOTTOM)
+    elif var3.get() == 2:
+        one_plot(x, mu, "Num 1 plot")
+        one_plot(y, mu, "Num 2 plot")
+        one_plot(z, mu_z, "Result")
+    else:
+        one_plot(z, mu_z, "Result")
     
 def error():
     error = Tk.Toplevel(master=root)
@@ -198,8 +237,12 @@ def calculate():
             xl, xr, mux = trapeze_discr(x_left, x_numl, x_numr, x_right, n)
         elif val_memb1 == 2:
             n1 = ent1.get().split()
-            mean1, variance1 = list(map(lambda x: float(x), n1))
-            xl, xr, mux = normal_discr(mean1, variance1, n)
+            if len(n1) == 2:
+                mean1, variance1 = list(map(lambda x: float(x), n1))
+                discr_lvl = 1/n
+            else:
+                mean1, variance1, discr_lvl = list(map(lambda x: float(x), n1))
+            xl, xr, mux = normal_discr(mean1, variance1, discr_lvl, n)
         else:
             filex = open(fl1_x.get(), 'r')
             x_str = filex.readlines()
@@ -222,8 +265,12 @@ def calculate():
             yl, yr, muy = trapeze_discr(y_left, y_numl, y_numr, y_right, n)
         elif val_memb2 == 2:
             n2 = ent2.get().split()
-            mean2, variance2 = list(map(lambda x: float(x), n2))
-            yl, yr, muy = normal_discr(mean2, variance2, n)
+            if len(n2) == 2:
+                mean2, variance2 = list(map(lambda x: float(x), n2))
+                discr_lvl = 1/n
+            else:
+            	  mean2, variance2, discr_lvl = list(map(lambda x: float(x), n2))
+            yl, yr, muy = normal_discr(mean2, variance2, discr_lvl, n)
         else:
             filex = open(fl2_x.get(), 'r')
             x_str = filex.readlines()
@@ -278,7 +325,7 @@ def calculate():
         err_lbl = Tk.Label(error, text="Invalid input", font='Arial 20', fg='red')
         err_lbl.pack()
         def _quit():
-          error.destroy()
+            error.destroy()
 
         button = Tk.Button(master=error, text='Quit', command=_quit)
         button.pack(side=Tk.BOTTOM)
@@ -358,103 +405,124 @@ def select_file2_mu ():
 root = Tk.Tk()
 root.title("1FC")
 
-frame_memb1 = Tk.Frame(root)
+main_frame = Tk.Frame(root, bg="#fee")
+frame_input = Tk.Frame(main_frame, bg="#efe")
+
+frame_memb1 = Tk.Frame(frame_input, bg="#efe")
 varmemb1 = Tk.IntVar()
-rmemb1_tr = Tk.Radiobutton(frame_memb1,text = 'Triangle/trapeze',variable=varmemb1,value=1,command = trap1_pack)
-rmemb1_n =Tk.Radiobutton(frame_memb1,text = 'Normal distribution',variable=varmemb1,value=2,command = norm1_pack)
-rmemb1_f =Tk.Radiobutton(frame_memb1,text = 'From file',variable=varmemb1,value=3,command = file1_pack)
+rmemb1_tr = Tk.Radiobutton(frame_memb1, bg="#efe",text = 'Triangle/trapeze',variable=varmemb1,value=1,command = trap1_pack)
+rmemb1_n =Tk.Radiobutton(frame_memb1, bg="#efe",text = 'Normal distribution',variable=varmemb1,value=2,command = norm1_pack)
+rmemb1_f =Tk.Radiobutton(frame_memb1, bg="#efe",text = 'From file',variable=varmemb1,value=3,command = file1_pack)
 varmemb1.set(1)
 frame_memb1.pack(side = 'top')
 rmemb1_tr.pack(side = 'left')
 rmemb1_n.pack(side = 'left')
 rmemb1_f.pack(side = 'left')
-frame_inp1 = Tk.Frame(root)
+frame_inp1 = Tk.Frame(frame_input, bg="#efe")
 frame_inp1.pack()
-label1_tr = Tk.Label(frame_inp1,text = "Number(format:'left num(+num_right for trapeze) right)")
-label1_n = Tk.Label(frame_inp1,text = "Number(format:'mean variance')")
+label1_tr = Tk.Label(frame_inp1, bg="#efe",text = "Number(format:'left num(+num_right for trapeze) right)")
+label1_n = Tk.Label(frame_inp1, bg="#efe",text = "Number(format:'mean variance')")
 label1_tr.pack(side = 'top')
 ent1 = Tk.Entry(frame_inp1)
 ent1.pack(side='top')
-label1_f_x = Tk.Label(frame_inp1,text = "Xes from file:")
+label1_f_x = Tk.Label(frame_inp1, bg="#efe",text = "Xes from file:")
 fl1_x = Tk.StringVar()
 file1_x_but = Tk.Button(frame_inp1, text="Select file", command=select_file1_x)
 label1_file_x = Tk.Label(frame_inp1, textvariable = fl1_x)
-label1_f_mu = Tk.Label(frame_inp1,text = "MUs from file:")
+label1_f_mu = Tk.Label(frame_inp1, bg="#efe",text = "MUs from file:")
 fl1_mu = Tk.StringVar()
-file1_mu_but = Tk.Button(frame_inp1, text="Select file", command=select_file1_mu)
-label1_file_mu = Tk.Label(frame_inp1, textvariable = fl1_mu)
+file1_mu_but = Tk.Button(frame_inp1, bg="#efe", text="Select file", command=select_file1_mu)
+label1_file_mu = Tk.Label(frame_inp1, bg="#efe", textvariable = fl1_mu)
 
-frame_memb2 = Tk.Frame(root)
+frame_memb2 = Tk.Frame(frame_input, bg="#efe")
 varmemb2 = Tk.IntVar()
-rmemb2_tr = Tk.Radiobutton(frame_memb2,text='Triangle/trapeze',variable=varmemb2,value=1,command = trap2_pack)
-rmemb2_n = Tk.Radiobutton(frame_memb2,text='Normal distribution',variable=varmemb2,value=2,command = norm2_pack)
-rmemb2_f =Tk.Radiobutton(frame_memb2,text = 'From file',variable=varmemb2,value=3,command = file2_pack)
+rmemb2_tr = Tk.Radiobutton(frame_memb2, bg="#efe",text='Triangle/trapeze',variable=varmemb2,value=1,command = trap2_pack)
+rmemb2_n = Tk.Radiobutton(frame_memb2, bg="#efe",text='Normal distribution',variable=varmemb2,value=2,command = norm2_pack)
+rmemb2_f =Tk.Radiobutton(frame_memb2, bg="#efe",text = 'From file',variable=varmemb2,value=3,command = file2_pack)
 varmemb2.set(1)
 frame_memb2.pack(side='top')
 rmemb2_tr.pack(side='left')
 rmemb2_n.pack(side='left')
 rmemb2_f.pack(side = 'left')
-frame_inp2 = Tk.Frame(root)
+frame_inp2 = Tk.Frame(frame_input, bg="#efe")
 frame_inp2.pack()
-label2_tr = Tk.Label(frame_inp2,text="Number(format:'left num(+num_right for trapeze) right)")
-label2_n = Tk.Label(frame_inp2,text = "Number(format:'mean variance')")
+label2_tr = Tk.Label(frame_inp2, bg="#efe",text="Number(format:'left num(+num_right for trapeze) right)")
+label2_n = Tk.Label(frame_inp2, bg="#efe",text = "Number(format:'mean variance (optional discrimination level)'")
 label2_tr.pack(side='top')
 ent2 = Tk.Entry(frame_inp2)
 ent2.pack(side='top')
-label2_f_x = Tk.Label(frame_inp2,text = "Xes from file:")
+label2_f_x = Tk.Label(frame_inp2, bg="#efe",text = "Xes from file:")
 fl2_x = Tk.StringVar()
-file2_x_but = Tk.Button(frame_inp2, text="Select file", command=select_file2_x)
-label2_file_x = Tk.Label(frame_inp2, textvariable = fl2_x)
-label2_f_mu = Tk.Label(frame_inp2, text = "MUs from file:")
+file2_x_but = Tk.Button(frame_inp2, bg="#efe", text="Select file", command=select_file2_x)
+label2_file_x = Tk.Label(frame_inp2, bg="#efe", textvariable = fl2_x)
+label2_f_mu = Tk.Label(frame_inp2, bg="#efe", text = "MUs from file:")
 fl2_mu = Tk.StringVar()
-file2_mu_but = Tk.Button(frame_inp2, text="Select file", command=select_file2_mu)
-label2_file_mu = Tk.Label(frame_inp2, textvariable = fl1_mu)
+file2_mu_but = Tk.Button(frame_inp2, bg="#efe", text="Select file", command=select_file2_mu)
+label2_file_mu = Tk.Label(frame_inp2, bg="#efe", textvariable = fl1_mu)
 
+frame_input.pack(side="left")
+
+frame_settings = Tk.Frame(main_frame, bg="#fee")
 var=Tk.IntVar()
-frame1 = Tk.Frame(root)
-rbutton1=Tk.Radiobutton(frame1,text='+',variable=var,value=1)
-rbutton2=Tk.Radiobutton(frame1,text='-',variable=var,value=2)
-rbutton3=Tk.Radiobutton(frame1,text='*',variable=var,value=3)
-rbutton4=Tk.Radiobutton(frame1,text='/',variable=var,value=4)
+frame1 = Tk.Frame(frame_settings, bg="#fee")
+rbutton1=Tk.Radiobutton(frame1, bg="#fee",text='+',variable=var,value=1)
+rbutton2=Tk.Radiobutton(frame1, bg="#fee",text='-',variable=var,value=2)
+rbutton3=Tk.Radiobutton(frame1, bg="#fee",text='*',variable=var,value=3)
+rbutton4=Tk.Radiobutton(frame1, bg="#fee",text='/',variable=var,value=4)
 var.set(1)
 rbutton1.pack(side='left')
 rbutton2.pack(side='left')
 rbutton3.pack(side='left')
 rbutton4.pack(side='left')
 frame1.pack(side='top')
-label_method = Tk.Label(text="Method:")
+label_method = Tk.Label(frame_settings, bg="#fee",text="Method:")
 label_method.pack(side='top')
 var2=Tk.IntVar()
-frame2 = Tk.Frame(root)
-rbutton_m1=Tk.Radiobutton(frame2,text='Vertex method',variable=var2,value=1)
-rbutton_m2=Tk.Radiobutton(frame2,text='DSW method',variable=var2,value=2)
+frame2 = Tk.Frame(frame_settings, bg="#fee")
+rbutton_m1=Tk.Radiobutton(frame2, bg="#fee",text='Vertex method',variable=var2,value=1)
+rbutton_m2=Tk.Radiobutton(frame2, bg="#fee",text='DSW method',variable=var2,value=2)
 var2.set(1)
 rbutton_m1.pack(side='left')
 rbutton_m2.pack(side='left')
 frame2.pack(side='top')
-label3 = Tk.Label(root,text="Filename(output file for x'es, default 'x_out')")
+var3=Tk.IntVar()
+frame3 = Tk.Frame(frame_settings, bg="#fee")
+rbutton_plt1=Tk.Radiobutton(frame3, bg="#fee",text='3 in 1 plot',variable=var3,value=1)
+rbutton_plt2=Tk.Radiobutton(frame3, bg="#fee",text='3 plots',variable=var3,value=2)
+rbutton_plt3=Tk.Radiobutton(frame3, bg="#fee",text='Only res',variable=var3,value=3)
+var3.set(1)
+rbutton_plt1.pack(side='left')
+rbutton_plt2.pack(side='left')
+rbutton_plt3.pack(side='left')
+frame3.pack(side='top')
+frame_settings.pack(side="left")
+main_frame.pack(side="top")
+
+frame_out = Tk.Frame(root)
+label3 = Tk.Label(frame_out,text="Filename(output file for x'es, default 'x_out')")
 label3.pack()
-ent3 = Tk.Entry(root)
+ent3 = Tk.Entry(frame_out)
 ent3.pack()
-label4 = Tk.Label(root,text="Filename(output file for mu's, default 'mu_out')")
+label4 = Tk.Label(frame_out,text="Filename(output file for mu's, default 'mu_out')")
 label4.pack()
-ent4 = Tk.Entry(root)
+ent4 = Tk.Entry(frame_out)
 ent4.pack()
-dir_but = Tk.Button(root, text="Select Directory", command=select_dir)
+dir_but = Tk.Button(frame_out, text="Select Directory", command=select_dir)
 dir_but.pack()
-label5 = Tk.Label(root, text = "Directory:")
+label5 = Tk.Label(frame_out, text = "Directory:")
 label5.pack()
 dr = Tk.StringVar()
 dr.set(os.getcwd())
-label6 = Tk.Label(root, textvariable = dr)
+label6 = Tk.Label(frame_out, textvariable = dr)
 label6.pack()
-calc = Tk.Button(root, text="Calculate", command=calculate)
+calc = Tk.Button(frame_out, text="Calculate", command=calculate)
 calc.pack()
 def _quit():
     root.quit()  
     root.destroy()
 
-quit = Tk.Button(master=root, text='Quit', command=_quit)
+quit = Tk.Button(master=frame_out, text='Quit', command=_quit)
 quit.pack()
+frame_out.pack(side="top")
 
 Tk.mainloop()
